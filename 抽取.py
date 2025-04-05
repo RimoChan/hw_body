@@ -1,3 +1,4 @@
+import re
 import json
 
 import pandas as pd
@@ -64,7 +65,7 @@ def 规范化(l: dict):
     return l
 
 
-def 超(x):
+def 超(x, 上色=True):
     xx = x + [i+'测定' for i in x]
     z = {'2021': '', '2022': '', '2023': '', '2024': '', '2025': '', '参考范围': ''}
     for k, v in d.items():
@@ -76,6 +77,14 @@ def 超(x):
                 参考范围 = l.get('参考范围') or l.get('参考值') or l.get('正常范围值')
                 if not z['参考范围'] and 参考范围 and 参考范围 != '-':
                     z['参考范围'] = 参考范围.replace('--', '-')
+    f = lambda x: float(re.findall(r'(?:\d|\.)+', x)[0])
+    if 上色 and '-' in z['参考范围']:
+        参考下, 参考上 = map(float, z['参考范围'].split('-', 2))
+        for k, v in [*z.items()]:
+            if k == '参考范围' or not v:
+                continue
+            if f(v) < 参考下 or f(v) > 参考上:
+                z[k] = '$${\color{orange}%s}$$' % v
     return z
 
 
