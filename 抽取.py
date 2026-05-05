@@ -52,21 +52,16 @@ d['2025'] = 提取('2025体检报告')
 d['2026'] = 提取('2026体检报告')
 
 
-def 规范化(l: dict):
+def 规范化(l: dict) -> dict:
     l['项目'] = l.pop('项目', None) or l.pop('检查项目名称', None) or l.pop('项目名称', None)
     assert l['项目']
     l['项目'] = l['项目'].replace('（','(').split('(')[0]
     l['结果'] = l.pop('结果', None) or l.pop('检查结果', None)
     assert l['结果']
-    单位 = l.pop('单位', '')
-    if 单位:
-        if 单位[0] in '0123456789':
-            单位 = '*'+单位
-        l['结果'] = l['结果'] + 单位
     return l
 
 
-def 超(x, 上色=True):
+def 超(x, 上色=True) -> dict:
     xx = x + [i+'测定' for i in x]
     z = {'2021': '', '2022': '', '2023': '', '2024': '', '2025': '', '2026': '', '参考范围': ''}
     for k, v in d.items():
@@ -76,16 +71,20 @@ def 超(x, 上色=True):
             if l['项目'] in xx:
                 z[k] = l['结果']
                 参考范围 = l.get('参考范围') or l.get('参考值') or l.get('正常范围值') or l.get('参考区间')
+                z['单位'] = l.get('单位', '')
                 if not z['参考范围'] and 参考范围 and 参考范围 != '-':
                     z['参考范围'] = 参考范围.replace('--', '-')
     f = lambda x: float(re.findall(r'(?:\d|\.)+', x)[0])
     if 上色 and '-' in z['参考范围']:
         参考下, 参考上 = map(float, z['参考范围'].split('-', 2))
-        for k, v in [*z.items()]:
-            if k == '参考范围' or not v:
-                continue
-            if f(v) < 参考下 or f(v) > 参考上:
-                z[k] = '$${\color{orange}%s}$$' % v
+    for k, v in [*z.items()]:
+        if k in ('参考范围', '单位') or not v:
+            continue
+        v = v.removesuffix(z['单位'])
+        if (上色 and '-' in z['参考范围']) and (f(v) < 参考下 or f(v) > 参考上):
+            z[k] = '$${\color{orange}%s}$$' % v
+        else:
+            z[k] = v
     return z
 
 
